@@ -1,0 +1,26 @@
+{
+  "name": "@ucd-lib/fcr-to-opex",
+  "version": "0.1.0",
+  "description": "Convert a dams-*-metadata repo (synced with its GCS binary archive) into a Preservica OPEX/PAX package, ready for manual upload",
+  "type": "module",
+  "bin": {
+    "fcr-to-opex": "./bin/fcr-to-opex.js"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.14.0",
+    "archiver": "^8.0.0",
+    "commander": "^14.0.1",
+    "dotenv": "^17.0.0",
+    "fast-xml-parser": "^4.5.0"
+  },
+  "devDependencies": {
+    "mocha": "^11.0.0"
+  },
+  "mocha": {
+    "spec": "tests/**/*.test.js",
+    "timeout": 10000
+  }
+}
