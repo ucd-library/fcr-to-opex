@@ -152,4 +152,52 @@ describe('lib/gcs-sync.js', () => {
     assert.deepStrictEqual(result.skippedExisting, []);
     assert.deepStrictEqual(result.failed, []);
   });
+
+  it('itemNames restricts items/<name>/... objects to the allowed item names, syncing each allowed item in full', async () => {
+    const downloadedObjectNames = [];
+    const downloadObjectFn = async ({ objectName, destPath }) => {
+      downloadedObjectNames.push(objectName);
+      await fs.mkdir(path.dirname(destPath), { recursive: true });
+      await fs.writeFile(destPath, 'bytes');
+    };
+
+    const result = await syncBinariesFromGcs({
+      metadataDir,
+      slug: 'mini',
+      bucket: 'test-bucket',
+      itemNames: ['item1'],
+      listObjects: fakeListObjects([
+        { name: 'mini/items/item1/media/images/page_001.tif', size: 1 },
+        { name: 'mini/items/item1/media/images/page_002.tif', size: 1 },
+        { name: 'mini/items/item2/item2.pdf', size: 1 }
+      ]),
+      downloadObjectFn
+    });
+
+    assert.deepStrictEqual(downloadedObjectNames.sort(), [
+      'mini/items/item1/media/images/page_001.tif',
+      'mini/items/item1/media/images/page_002.tif'
+    ]);
+    assert.strictEqual(result.downloaded.length, 2, 'both of item1\'s files should sync - a limit restricts items, not files within an item');
+  });
+
+  it('itemNames never restricts objects outside items/ (e.g. collection-level binaries)', async () => {
+    const downloadedObjectNames = [];
+    const downloadObjectFn = async ({ objectName, destPath }) => {
+      downloadedObjectNames.push(objectName);
+      await fs.mkdir(path.dirname(destPath), { recursive: true });
+      await fs.writeFile(destPath, 'bytes');
+    };
+
+    await syncBinariesFromGcs({
+      metadataDir,
+      slug: 'mini',
+      bucket: 'test-bucket',
+      itemNames: [],
+      listObjects: fakeListObjects([{ name: 'mini/collection/mini/some-asset.jpg', size: 1 }]),
+      downloadObjectFn
+    });
+
+    assert.deepStrictEqual(downloadedObjectNames, ['mini/collection/mini/some-asset.jpg']);
+  });
 });

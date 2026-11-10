@@ -69,6 +69,7 @@ owned by this tool, not somewhere you keep other work.
 | `--gcs-bucket <bucket>` | `FCR_TO_OPEX_GCS_BUCKET` env var | override the bucket per-invocation |
 | `--skip-gcs-sync` | `false` | skip the GCS download step (inspect the raw metadata-only checkout) |
 | `--force-gcs-sync` | `false` | re-download every binary even if already present locally |
+| `-l, --limit <n>` | *(none)* | build a small TEST package: only the first `n` items (sorted order) are synced from GCS and packaged |
 
 This produces `<output-dir>/<slug>/` (an OPEX-structured folder tree - real
 Preservica folders and assets mirroring the source file tree, each with a
@@ -103,6 +104,22 @@ time, and is safe to over-download (`walk.js` only ever reads a file its own
 sibling-path check already found). Use `--skip-gcs-sync` to inspect just the
 metadata-only checkout (no binaries), and `--force-gcs-sync` to re-pull
 everything regardless of what's already local.
+
+## Building a small test package (`--limit`)
+
+A full collection can mean gigabytes of binaries and hundreds of items -
+slow to iterate on when you just want to sanity-check the OPEX/PAX output.
+`--limit <n>` caps both steps to the same first `n` items, in sorted order
+(`lib/package/walk.js#listItemNames`): GCS sync only downloads binaries for
+those items (each selected item's content is still synced **in full** - every
+page/representation - only the *number of items* is capped, not files within
+one), and `package` only writes those items into the OPEX tree. A warning is
+logged at the start of the run and again at each step (clone/sync/package) so
+a limited run is never mistaken for a full export.
+
+```bash
+fcr-to-opex package --working-dir ./work --output-dir ./haeger-opex --slug haeger --limit 2
+```
 
 ## Package: schema.org → OPEX + Dublin Core
 

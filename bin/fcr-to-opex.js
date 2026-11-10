@@ -27,6 +27,7 @@ program
   .option('--gcs-bucket <bucket>', 'GCS bucket to sync binaries from', config.gcs.bucket)
   .option('--skip-gcs-sync', 'Skip the GCS binary sync step (inspect the raw metadata-only checkout)', false)
   .option('--force-gcs-sync', 'Re-download every binary even if already present locally', false)
+  .option('-l, --limit <n>', 'Build a small TEST package: only the first N items (sorted order) are synced from GCS (each item synced in full) and packaged', (v) => parseInt(v, 10))
   .action(async (opts) => {
     await runPackage({
       workingDir: opts.workingDir,
@@ -35,7 +36,8 @@ program
       githubOrg: opts.githubOrg,
       gcsBucket: opts.gcsBucket,
       skipGcsSync: opts.skipGcsSync,
-      forceGcsSync: opts.forceGcsSync
+      forceGcsSync: opts.forceGcsSync,
+      limit: opts.limit ?? null
     });
   });
 

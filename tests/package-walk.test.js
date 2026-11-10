@@ -2,7 +2,7 @@ import assert from 'assert';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
-import { packageMetadataDir } from '../lib/package/walk.js';
+import { packageMetadataDir, listItemNames } from '../lib/package/walk.js';
 
 /**
  * @description Write a small synthetic dams-*-metadata repo to a temp directory:
@@ -167,5 +167,44 @@ describe('lib/package/walk.js', () => {
     const { rootDir, slug } = await packageMetadataDir({ metadataDir, outputDir, slug: 'custom-slug' });
     assert.strictEqual(slug, 'custom-slug');
     assert.ok(rootDir.endsWith('custom-slug'));
+  });
+
+  it('itemLimit packages only the first N items (sorted order)', async () => {
+    const { rootDir, stats } = await packageMetadataDir({ metadataDir, outputDir, itemLimit: 1 });
+
+    assert.strictEqual(stats.assets + stats.paxAssets, 1);
+    const rootEntries = await fs.readdir(rootDir);
+    assert.ok(rootEntries.includes('item1.txt'), 'item1 (sorted first) should be packaged');
+    assert.ok(!rootEntries.includes('item2.pax'), 'item2 should not be packaged when itemLimit excludes it');
+  });
+});
+
+describe('lib/package/walk.js#listItemNames', () => {
+  let tmpDir;
+  let itemsDir;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'fcr-to-opex-list-item-names-test-'));
+    itemsDir = path.join(tmpDir, 'items');
+    await fs.mkdir(itemsDir, { recursive: true });
+    await fs.writeFile(path.join(itemsDir, 'b.jsonld.json'), '{}');
+    await fs.writeFile(path.join(itemsDir, 'a.jsonld.json'), '{}');
+    await fs.writeFile(path.join(itemsDir, 'c.jsonld.json'), '{}');
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns every item name in sorted order when no limit is given', async () => {
+    assert.deepStrictEqual(await listItemNames(itemsDir), ['a', 'b', 'c']);
+  });
+
+  it('caps the list to the first N names when a limit is given', async () => {
+    assert.deepStrictEqual(await listItemNames(itemsDir, 2), ['a', 'b']);
+  });
+
+  it('returns an empty array when the items/ directory does not exist', async () => {
+    assert.deepStrictEqual(await listItemNames(path.join(tmpDir, 'missing'), 2), []);
   });
 });
