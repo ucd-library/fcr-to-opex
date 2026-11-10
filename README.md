@@ -54,11 +54,16 @@ actually needs, not the one `gcloud auth login` already set up.
 fcr-to-opex package --working-dir ./work --output-dir ./haeger-opex --slug haeger
 ```
 
-Every run always shallow-clones `https://github.com/<org>/dams-<slug>-metadata.git`
-(`main`, depth 1) fresh into `<working-dir>/dams-<slug>-metadata` - there's no
-need to clone the metadata repo yourself first. Any existing checkout at that
-path is removed and re-cloned, so treat `--working-dir` as a scratch directory
-owned by this tool, not somewhere you keep other work.
+Every run ensures `https://github.com/<org>/dams-<slug>-metadata.git` (`main`)
+is checked out at `<working-dir>/dams-<slug>-metadata` - there's no need to
+clone the metadata repo yourself first. If nothing is there yet, it's
+shallow-cloned (depth 1); if a checkout already exists, it's updated in place
+(`git fetch` + `git reset --hard origin/main`) rather than wiped, so binaries
+a previous run's GCS sync downloaded into that same checkout are **preserved**
+across runs. That's what makes reusing the same `--working-dir` across
+invocations useful: sync once, then iterate quickly with `--skip-gcs-sync`
+without losing the binaries you already pulled down. Treat `--working-dir` as
+a directory owned by this tool, not somewhere you keep other work.
 
 | Flag | Default | Meaning |
 |---|---|---|
